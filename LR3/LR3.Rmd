@@ -1,0 +1,128 @@
+---
+title: "Математична статистика. _Лабораторна робота № 3_. Основи вибіркового методу"
+author: "Ihor Polynko, KN-23-1, `r format(Sys.Date(), '%Y')`"
+date: "`r Sys.Date()`"
+output:
+#   pdf_document:
+#     highlight: tango
+#     toc: yes
+#   word_document:
+#     highlight: tango
+#     toc: yes
+# always_allow_html: true
+  html_notebook:
+    # citation_package: natbib
+    toc: yes # Оглавление
+    toc_float: true
+    highlight: tango # Цвет подсветки кода
+fontsize: 12pt # размер шрифта
+header-includes:
+ \usepackage[T2A]{fontenc}
+ \usepackage[utf8]{inputenc}
+ \usepackage[russian]{babel}
+editor_options: 
+  chunk_output_type: console
+bibliography: references.bib
+---
+
+## Постановка задачі
+
+У цьому завданні ми розглядаємо випадкову величину \( X \), яка має розподіл \( F(x, \Theta) \) з відомим вектором параметрів \( \Theta = (\theta_1, \ldots, \theta_s) \). Задача включає:
+- Генерацію двох вибірок розмірів \( n = 100 \) та \( n = 10000 \).
+- Оцінку вектора параметрів розподілу \( \tilde{\Theta} \) та порівняння з теоретичними характеристиками.
+- Аналіз інших статистичних характеристик.
+
+У нашому випадку використовується **нормальний розподіл** із заданими параметрами: 
+- \( a = 0 \) (математичне сподівання),
+- \( \sigma = 1 \) (середньоквадратичне відхилення).
+
+---
+
+## Розв’язок задачі
+
+### Генерація вибірок
+
+```{r, echo=TRUE}
+set.seed(0)
+
+# Параметри розподілу:
+a <- 0
+s <- 1
+
+# Генеруємо вибірки:
+n1 <- 100
+n2 <- 10000
+
+X1 <- rnorm(n1, a, s) # вибірка розміру 100
+X2 <- rnorm(n2, a, s) # вибірка розміру 10000
+
+cat("Перші елементи вибірки X1:", head(X1))
+cat("Перші елементи вибірки X2:", head(X2))
+```
+
+### Теоретичні та вибіркові характеристики
+```{r, echo=TRUE}
+# Теоретичні характеристики
+theoretical_mean <- a
+theoretical_sd <- s
+
+# Вибіркові характеристики
+sample_mean_X1 <- mean(X1)
+sample_sd_X1 <- sd(X1)
+
+sample_mean_X2 <- mean(X2)
+sample_sd_X2 <- sd(X2)
+
+cat("Теоретичне середнє:", theoretical_mean, "\n",
+    "Теоретичне стандартне відхилення:", theoretical_sd, "\n")
+cat("Вибіркові характеристики X1:", "\n",
+    "Середнє:", sample_mean_X1, "\n",
+    "Стандартне відхилення:", sample_sd_X1, "\n")
+cat("Вибіркові характеристики X2:", "\n",
+    "Середнє:", sample_mean_X2, "\n",
+    "Стандартне відхилення:", sample_sd_X2)
+```
+
+### Графіки вибірок
+```{r, echo=TRUE}
+op <- par(mfrow = c(2, 2))
+
+# Гістограми для X1 та X2
+hist(X1, freq = FALSE, col = "lightgray", main = "Histogram (n = 100)", border = 4)
+curve(dnorm(x, a, s), col = 2, lty = 2, lwd = 2, add = TRUE)
+
+hist(X2, freq = FALSE, col = "lightgray", main = "Histogram (n = 10000)", border = 4)
+curve(dnorm(x, a, s), col = 2, lty = 2, lwd = 2, add = TRUE)
+
+# Щільність розподілу для X1 та X2
+plot(density(X1), main = "Density Plot (n = 100)", col = "blue", xlab = "X")
+rug(X1, col = 2)
+
+plot(density(X2), main = "Density Plot (n = 10000)", col = "blue", xlab = "X")
+rug(X2, col = 2)
+
+par(op)
+```
+
+### Порівняння характеристик
+```{r, echo=TRUE}
+comparison <- data.frame(
+  Характеристика = c("Середнє", "Стандартне відхилення"),
+  Теоретичне = c(theoretical_mean, theoretical_sd),
+  "Вибірка (n = 100)" = c(sample_mean_X1, sample_sd_X1),
+  "Вибірка (n = 10000)" = c(sample_mean_X2, sample_sd_X2)
+)
+
+print(comparison)
+```
+
+## Висновки
+1. Вибіркові характеристики: Зі збільшенням розміру вибірки оцінки параметрів розподілу стають ближчими до теоретичних значень.
+2. Графіки: Для меншої вибірки n=100 щільність розподілу має більшу варіативність, тоді як для більшої вибірки n=10000 наближається до ідеального розподілу.
+3. Практичні висновки: Генерація великої вибірки забезпечує точнішу оцінку параметрів.
+
+
+
+## References
+[@LatExSyntaxis]
+[@Akinshin]
