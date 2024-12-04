@@ -1,0 +1,246 @@
+---
+title: Математична статистика. _Лабораторна робота № 4_. Перевірка статистичних гіпотез
+  щодо закону розподілу. Перевірка на нормальність
+author: "Ihor Polynko, KN-23-1, `r format(Sys.Date(), '%Y')`"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    df_print: paged
+  html_notebook:
+    toc: true
+    toc_float: true
+    highlight: tango
+fontsize: 12pt
+header-includes: \usepackage[T2A]{fontenc} \usepackage[utf8]{inputenc} \usepackage[russian]{babel}
+editor_options:
+  chunk_output_type: console
+bibliography: references.bib
+---
+
+## Постановка задачі
+
+Випадкова величина $X$ має заданий закон розподілу, вектор параметрів якого відомий. Треба згенерувати вибірку випадкової величини $X = (x_1, \ldots, x_n)$ для двох об'ємів вибірки: сaпочатку для $n = 50$, потім для $n = 1000$. Для кожного випадку обчислити оцінку параметрів розподілу (математичне сподівання $\mu$ та дисперсію $\sigma^2 $).
+Висунути і перевірити статистичну гіпотезу щодо нормального закону розподілу величини $X$:
+
+$H_0: f(x) \in \left\{ N(x, \mu, \sigma^2), \mu \in \mu, \sigma^2 \in \Sigma^2 \right\}$
+
+$H_1: f(x) \notin \left\{ N(x, \mu, \sigma^2), \mu \in \mu, \sigma^2 \in \Sigma^2 \right\}$
+
+Ці гіпотези передбачають перевірку, чи належить розподіл вибірки до нормального закону.
+
+Повторіть це дослідження для $n = 1000$ та порівняйте результати, зробивши відповідні висновки.
+
+---
+
+## Розв’язок задачі
+
+
+### Обчислюємо вибіркові числові характеристики
+
+```{r, echo=TRUE}
+# Функції користувача доцільно розміщувати у окремому файлі і імпортувати їх у скрипт
+source("mymethods.R")
+
+X <- rnorm(100, 0, 1)
+
+SampleCharacteristics(X)
+
+summary(X)
+
+mean(X)
+
+sd(X)
+
+# Виводимо поряд чотири основних графіки
+op <- par(mfrow = c(2,2)) # Зберігаємо старі параметри виводу
+dotchart(X, main = "Cleveland's Dot Plots", col = 4) # Точкова діаграма Кливленда
+
+# Ящик з вусами
+boxplot(X, width = 2,
+range = 1,
+col = "gray",
+border = 4,
+main = "Box-and-Wiskers Plot")
+
+# Визначення математичного сподівання та стандартного відхилення
+a <- mean(X)
+s <- sd(X)
+
+# Гістограма відносних частот
+hist(X, freq = FALSE,
+    breaks = nclass.Sturges(X),
+    col = "grey")
+curve(dnorm(x, a, s),
+    col = 2,
+    lty = 2,
+    lwd = 2,
+    add = TRUE) # зверху крива щільності
+curve(dunif(x, -2, 2),
+    col = 3,
+    lty = 2,
+    lwd = 2,
+    add = TRUE) # зверху крива щільності рівномірного розподілу
+curve(dt(x, df=10),
+    col = 4,
+    lty = 2,
+    lwd = 2,
+    add = TRUE) # зверху крива щільності розподілу Стьюдента
+
+# Емпірична функція розподілу F(x)
+Fn <- ecdf(X)
+plot(Fn,
+    ylab = "",
+    verticals = TRUE,
+    col.points = "blue",
+    col.hor = "red",
+    col.vert = "bisque",
+    main = "Probability Distribution Function")
+curve(pnorm(x, a, s),
+    col = 6,
+    lty = 1,
+    lwd = 2,
+    add = TRUE) # -> зверху крива щільності
+curve(pnorm(x, mean(X), sd(X)),
+    col = 2,
+    lty = 1,
+    lwd = 2,
+    add = TRUE) # -> зверху крива щільності
+
+# Додаємо легенду
+legend("bottomright",
+pch = c(19, NA, NA),
+legend = c("Fn(x)", "F(x)","Fvol(x)"),
+lty = c(1,1,1), col = c(4,6,2), lwd = c(NA,2,2))
+```
+
+```{r, echo=TRUE}
+par(op) # Повертаємо початкові параметри
+```
+
+```{r, echo=TRUE}
+# Теоретичні характеристики
+# Обчислення п’яти квантилей
+quantile(X)
+
+############### ПЕРЕВІРКА НА НОРМАЛЬНІСТЬ ###############
+qqnorm(X, col=4)
+qqline(X, col=2)
+```
+
+```{r, echo=TRUE}
+# Завантажуємо необхідний пакет
+library(lattice)
+
+qqmath(~X) # Аналог qqnorm() з пакета LATTICE
+```
+
+```{r, echo=TRUE}
+# Квантиль-квантильний графік для довільного розподілу
+# у цьому випадку для рівномірного
+
+qqplot(qunif(ppoints(length(X)), -2, 2), X,
+    main = "Q-Q plot for U(-2,2)", col=4)
+qqline(X, distribution = function(p) qunif(p, -2, 2),
+    prob = c(0.1, 0.6),
+    col = 2)
+mtext("qqline(*, dist = qunif(., -2, 2), prob = c(0.1, 0.6))")
+```
+
+```{r, echo=TRUE}
+# Тест Шапіро-Уилкса
+shapiro.test(X)
+
+# Якщо p > 0.05 - Нульова гіпотеза не відхиляється
+#Тест Колмогорова-Смирнова
+ks.test(X,"pnorm") #перший варіант
+
+ks.test(X, rnorm(length(X))) #другий варіант
+```
+
+```{r, echo=TRUE}
+# Тест Андерсона-Дарлинга
+# ad.test(X)
+
+# Тест Крамера фон Мізеса
+# cvm.test(X)
+
+# Тест Колмогорова-Смірнова у модифікації Лілієфорса
+library(nortest)
+lillie.test(X)
+
+# Критерій Хі-квадрат Пірсона
+pearson.test(X)
+
+pearson.test(X, n.classes=nclass.Sturges(X))
+
+# str(pearson.test(X))
+# тест Шапиро-Франсия
+sf.test(X)
+```
+
+```{r, echo=TRUE}
+# Генерація вибірки
+X50 <- rnorm(50, mean = 0, sd = 1)
+X1000 <- rnorm(1000, mean = 0, sd = 1)
+
+# Функція для обчислення асиметрії та ексцесу
+calc_skewness_kurtosis <- function(x) {
+  skew <- mean((x - mean(x))^3) / sd(x)^3
+  kurt <- mean((x - mean(x))^4) / sd(x)^4 - 3
+  return(c(skew, kurt))
+}
+
+# Функція для обчислення статистичних характеристик
+get_stats <- function(x) {
+  mean_x <- mean(x)
+  sd_x <- sd(x)
+  skew_kurt <- calc_skewness_kurtosis(x)
+  skew <- skew_kurt[1]
+  kurt <- skew_kurt[2]
+  
+  return(data.frame(Mean = mean_x, SD = sd_x, Skewness = skew, Kurtosis = kurt))
+}
+
+# Обчислення характеристик для обох вибірок
+stats_50 <- get_stats(X50)
+stats_1000 <- get_stats(X1000)
+
+# Перевірка на нормальність
+shapiro_test_50 <- shapiro.test(X50)
+shapiro_test_1000 <- shapiro.test(X1000)
+
+# Результати тестів
+shapiro_test_50
+shapiro_test_1000
+
+# Виведення таблиці з результатами
+stats_table <- data.frame(
+  Sample_Size = c(50, 1000),
+  Mean = c(stats_50$Mean, stats_1000$Mean),
+  SD = c(stats_50$SD, stats_1000$SD),
+  Skewness = c(stats_50$Skewness, stats_1000$Skewness),
+  Kurtosis = c(stats_50$Kurtosis, stats_1000$Kurtosis),
+  Shapiro_Test_p = c(shapiro_test_50$p.value, shapiro_test_1000$p.value)
+)
+
+print(stats_table)
+```
+
+```{r, Echo=TRUE}
+write.csv(stats_table, "results.csv", row.names = FALSE)
+```
+
+## Висновки
+1. Вибіркові характеристики: Зі збільшенням розміру вибірки оцінки параметрів розподілу (математичного сподівання та дисперсії) наближаються до теоретичних значень. Для вибірки розміром 50 оцінки можуть бути менш точними, а для вибірки розміром 1000 вони стають більш стабільними та наближеними до реальних значень нормального розподілу.
+
+2. Графіки: При побудові графіків для різних вибірок спостерігається, що для меншої вибірки (n=50) щільність розподілу має велику варіативність, в той час як для більшої вибірки (n=1000) розподіл наближається до ідеальної нормальної кривої. Це підтверджує закон великих чисел, що гарантує наближення вибіркових характеристик до теоретичних за великих обсягів вибірки.
+
+3. Перевірка на нормальність: Результати різних тестів на нормальність (Шапіро-Уілкса, Колмогорова-Смирнова, Лілієфорса) показують, що для вибірки n=1000 нульова гіпотеза про нормальність розподілу не відхиляється, що свідчить про відповідність даних нормальному розподілу. Однак для вибірки з меншим розміром (n=50) деякі тести можуть показати слабші результати.
+
+4. Практичні висновки: Генерація великої вибірки (n=1000) забезпечує більш точну оцінку параметрів розподілу та дозволяє краще перевіряти гіпотези щодо нормальності розподілу випадкової величини. У разі менших вибірок результат може бути менш надійним.
+
+
+## References
+[@LatExSyntaxis]
+[@Akinshin]
